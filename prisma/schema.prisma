@@ -1,0 +1,133 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  empId     String   @unique
+  name      String
+  pin       String
+  role      String   // Admin, Cashier, Staff, Kitchen, Bar
+  shifts    Shift[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shift {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  user          User      @relation(fields: [userId], references: [id])
+  openingAmount Float
+  closingAmount Float?
+  status        String    @default("OPEN") // OPEN, CLOSED
+  openedAt      DateTime  @default(now())
+  closedAt      DateTime?
+}
+
+model Setting {
+  id            Int      @id @default(autoincrement())
+  key           String   @unique
+  value         String
+  description   String?
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  subtitle    String?
+  description String?  @db.Text
+  image       String?
+  badge       String?
+  badgeColor  String?  @default("bg-amber-500")
+  price       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Table {
+  id        Int      @id @default(autoincrement())
+  tableNo   String   @unique
+  status    String   @default("AVAILABLE") // AVAILABLE, OCCUPIED, RESERVED
+  token     String?  // Dynamic QR session token
+  orders    Order[]
+  reservations Reservation[]
+}
+
+model Reservation {
+  id            Int      @id @default(autoincrement())
+  tableId       Int?
+  table         Table?   @relation(fields: [tableId], references: [id])
+  customerName  String
+  phone         String
+  reservationTime DateTime
+  guestCount    Int
+  status        String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  preOrder      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  sortOrder Int      @default(0)
+  menus     Menu[]
+}
+
+model Menu {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Float
+  image       String?
+  isDrink     Boolean  @default(false)
+  isRecommended Boolean @default(false)
+  status      String   @default("AVAILABLE") // AVAILABLE, OUT_OF_STOCK
+  categoryId  Int
+  category    Category @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+}
+
+model Order {
+  id            Int      @id @default(autoincrement())
+  tableId       Int?
+  table         Table?   @relation(fields: [tableId], references: [id])
+  isTakeaway    Boolean  @default(false)
+  status        String   @default("OPEN") // OPEN, PAID, CANCELLED
+  subtotal      Float    @default(0)
+  discount      Float    @default(0)
+  vatAmount     Float    @default(0)
+  serviceCharge Float    @default(0)
+  total         Float    @default(0)
+  paymentMethod String?  // CASH, PROMPTPAY, CREDIT_CARD
+  cancelReason  String?
+  items         OrderItem[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model OrderItem {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  order         Order    @relation(fields: [orderId], references: [id])
+  menuId        Int
+  menu          Menu     @relation(fields: [menuId], references: [id])
+  quantity      Int
+  status        String   @default("PENDING") // PENDING, COOKING, DONE, SERVED
+  note          String?
+  isReservation Boolean  @default(false)
+  reservationTime DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
