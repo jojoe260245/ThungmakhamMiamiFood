@@ -8,10 +8,12 @@ import { useCartStore } from "@/store/useCartStore";
 function CustomerMenuContent() {
   const searchParams = useSearchParams();
   const tableNo = searchParams.get("table") || "01";
+  const token = searchParams.get("token");
 
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
 
   // Options Modal State
@@ -95,7 +97,7 @@ function CustomerMenuContent() {
         <div className="flex justify-between items-center mb-4">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-white">
-              TKM<span className="text-amber-500">FOOD</span>
+              ThungmakhamMiami<span className="text-amber-500">Food</span>
             </h1>
             <p className="text-[10px] text-neutral-500 font-medium tracking-[0.3em] uppercase">
               Seaside Restaurant • โต๊ะ {tableNo}
@@ -244,7 +246,7 @@ function CustomerMenuContent() {
               <div
                 key={item.id}
                 onClick={() => openOptionsModal(item)}
-                className="bg-neutral-900 rounded-[20px] overflow-hidden cursor-pointer group border border-neutral-800 hover:border-amber-500/30 transition-all hover:shadow-lg hover:shadow-amber-500/5"
+                className="glass-panel-dark rounded-3xl overflow-hidden cursor-pointer group hover:shadow-xl hover:shadow-amber-500/10 hover:-translate-y-1 transition-all duration-300 animate-slide-up border border-white/5"
               >
                 <div className="aspect-square relative overflow-hidden">
                   {item.image ? (
@@ -285,7 +287,7 @@ function CustomerMenuContent() {
       )}
 
       {/* Bottom Nav */}
-      <div className="fixed bottom-0 left-0 w-full bg-[#0D0D0D]/95 backdrop-blur-xl border-t border-neutral-800 pb-safe z-50">
+      <div className="fixed bottom-0 left-0 w-full glass-panel-dark border-t border-slate-800 pb-safe z-50">
         <div className="flex items-center justify-around max-w-md mx-auto py-2">
           <div className="flex flex-col items-center gap-0.5 text-amber-500">
             <span className="text-xl">🏠</span>
@@ -559,14 +561,18 @@ function CustomerMenuContent() {
               </div>
 
               <button
-                className="w-full bg-amber-500 hover:bg-amber-400 text-black font-black text-lg py-4 rounded-2xl shadow-lg shadow-amber-500/30 transition-all active:scale-95"
+                disabled={isSubmitting}
+                className={`w-full font-black text-lg py-4 rounded-2xl shadow-lg transition-all active:scale-95 ${isSubmitting ? 'bg-neutral-700 text-neutral-400 cursor-not-allowed shadow-none' : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/30'}`}
                 onClick={async () => {
+                  if (isSubmitting) return;
+                  setIsSubmitting(true);
                   try {
                     const res = await fetch("/api/orders", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         tableNo,
+                        token,
                         items: cartItems,
                         total: totalPrice,
                       }),
@@ -577,14 +583,21 @@ function CustomerMenuContent() {
                       useCartStore.getState().clearCart();
                       setIsCartOpen(false);
                     } else {
-                      alert("เกิดข้อผิดพลาด กรุณาลองใหม่");
+                      const err = await res.json();
+                      alert(err.error || "เกิดข้อผิดพลาด กรุณาลองใหม่");
                     }
                   } catch {
                     alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
                   }
+                  setIsSubmitting(false);
                 }}
               >
-                ยืนยันการสั่งอาหาร
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-neutral-400 border-t-transparent rounded-full animate-spin"></div>
+                    กำลังส่ง...
+                  </span>
+                ) : 'ยืนยันการสั่งอาหาร'}
               </button>
             </div>
           )}

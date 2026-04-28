@@ -47,11 +47,11 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         }
       });
 
-      // If no more open orders, set table back to AVAILABLE
+      // If no more open orders, set table back to AVAILABLE and clear token
       if (remainingOrders === 0) {
         await prisma.table.update({
           where: { id: order.tableId },
-          data: { status: 'AVAILABLE' }
+          data: { status: 'AVAILABLE', token: null }
         });
       }
     }

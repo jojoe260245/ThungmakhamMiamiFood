@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, tableNo, total } = body;
+    const { items, tableNo, total, token } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
@@ -19,6 +19,11 @@ export async function POST(req: Request) {
 
     if (!table) {
       return NextResponse.json({ error: 'Table not found' }, { status: 404 });
+    }
+
+    // Token Validation for PRO system security
+    if (table.token && table.token !== token) {
+      return NextResponse.json({ error: 'QR Code นี้หมดอายุแล้ว กรุณาสแกน QR ใหม่อีกครั้งเพื่อความปลอดภัยครับ' }, { status: 403 });
     }
 
     // Calculate subtotal

@@ -24,7 +24,7 @@ export default function ReceiptPage({ params }: { params: Promise<{ orderId: str
       <div className="font-mono text-sm max-w-[80mm] mx-auto p-4 bg-white text-black">
         {/* Header */}
         <div className="text-center mb-3 border-b border-dashed border-black pb-3">
-          <h1 className="text-xl font-black">TKMFOOD</h1>
+          <h1 className="text-xl font-black">ThungmakhamMiamiFood</h1>
           <p className="text-[10px]">Seaside Restaurant</p>
           <p className="text-[10px]">Tel: 099-XXX-XXXX</p>
         </div>

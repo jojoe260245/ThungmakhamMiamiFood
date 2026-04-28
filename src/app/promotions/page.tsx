@@ -15,7 +15,7 @@ export default function EventsPage() {
     <div className="min-h-screen bg-[#0D0D0D] text-white font-sans pb-28">
       <header className="sticky top-0 z-50 bg-[#0D0D0D]/90 backdrop-blur-xl px-5 py-4 border-b border-neutral-800">
         <div className="flex justify-between items-center">
-          <div><h1 className="text-xl font-black">🎉 กิจกรรมแนะนำ</h1><p className="text-xs text-neutral-500">TKM<span className="text-amber-500">FOOD</span> Seaside Restaurant</p></div>
+          <div><h1 className="text-xl font-black">🎉 กิจกรรมแนะนำ</h1><p className="text-xs text-neutral-500">ThungmakhamMiami<span className="text-amber-500">Food</span> Seaside Restaurant</p></div>
           <a href="/" className="text-sm bg-neutral-800 text-amber-400 px-4 py-2 rounded-xl font-bold hover:bg-neutral-700 transition">← เมนู</a>
         </div>
       </header>

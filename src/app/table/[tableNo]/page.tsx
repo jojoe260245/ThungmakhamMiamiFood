@@ -1,16 +1,19 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function TablePage({ params }: { params: Promise<{ tableNo: string }> }) {
+function TableContent({ params }: { params: Promise<{ tableNo: string }> }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
 
   useEffect(() => {
     params.then(({ tableNo }) => {
-      // Redirect to menu page with tableNo
-      router.replace(`/?table=${tableNo}`);
+      // Redirect to menu page with tableNo and token
+      const url = token ? `/?table=${tableNo}&token=${token}` : `/?table=${tableNo}`;
+      router.replace(url);
     });
-  }, [params, router]);
+  }, [params, router, token]);
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center">
@@ -19,5 +22,13 @@ export default function TablePage({ params }: { params: Promise<{ tableNo: strin
         <p className="text-amber-400 font-bold">กำลังเข้าสู่เมนู...</p>
       </div>
     </div>
+  );
+}
+
+export default function TablePage({ params }: { params: Promise<{ tableNo: string }> }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0D0D0D]"></div>}>
+      <TableContent params={params} />
+    </Suspense>
   );
 }

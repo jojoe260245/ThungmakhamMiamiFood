@@ -35,7 +35,7 @@ export default function OrderStatus() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-black">สถานะออเดอร์</h1>
-            <p className="text-xs text-neutral-500">Table {tableNo} • TKM<span className="text-amber-500">FOOD</span></p>
+            <p className="text-xs text-neutral-500">Table {tableNo} • ThungmakhamMiami<span className="text-amber-500">Food</span></p>
           </div>
           <a href="/" className="text-sm bg-neutral-800 text-amber-400 px-4 py-2 rounded-xl font-bold hover:bg-neutral-700 transition">← เมนู</a>
         </div>
