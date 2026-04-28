@@ -1,7 +1,18 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+type ActiveOrder = Prisma.OrderGetPayload<{
+  include: {
+    table: true;
+    items: {
+      include: {
+        menu: true;
+      };
+    };
+  };
+}>;
 
 // Fetch all active orders (not PAID or CANCELLED) with items
 export async function GET(request: Request) {
@@ -9,33 +20,40 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const printerType = searchParams.get('type'); // 'KITCHEN' or 'BAR'
 
-    const orders = await prisma.order.findMany({
+    const orders: ActiveOrder[] = await prisma.order.findMany({
       where: {
-        status: 'OPEN'
+        status: 'OPEN',
       },
       include: {
         table: true,
         items: {
           include: {
-            menu: true
-          }
-        }
+            menu: true,
+          },
+        },
       },
       orderBy: {
-        createdAt: 'asc' // Oldest orders first
-      }
+        createdAt: 'asc', // Oldest orders first
+      },
     });
 
     // Filter items based on printerType if provided
-    let result = orders;
+    let result: ActiveOrder[] = orders;
+
     if (printerType) {
       const isDrinkFilter = printerType === 'BAR';
-      result = orders.map(order => {
-        return {
-          ...order,
-          items: order.items.filter(item => item.menu?.isDrink === isDrinkFilter)
-        }
-      }).filter(order => order.items.length > 0); // Only keep orders that have items for this station
+
+      result = orders
+        .map((order: ActiveOrder) => {
+          return {
+            ...order,
+            items: order.items.filter(
+              (item: ActiveOrder['items'][number]) =>
+                item.menu?.isDrink === isDrinkFilter
+            ),
+          };
+        })
+        .filter((order: ActiveOrder) => order.items.length > 0);
     }
 
     return NextResponse.json({ orders: result }, { status: 200 });

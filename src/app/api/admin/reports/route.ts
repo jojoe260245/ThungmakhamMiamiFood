@@ -51,7 +51,14 @@ export async function GET(request: Request) {
       .sort((a, b) => b.sold - a.sold)
       .slice(0, 10);
 
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+    type ReportOrder = {
+      total: number;
+    };
+
+    const totalRevenue = (orders as ReportOrder[]).reduce(
+      (sum: number, o: ReportOrder) => sum + o.total,
+      0
+    );
     const totalOrders = orders.length;
 
     return NextResponse.json({ report: { period, totalRevenue, totalOrders, chartData, topMenus } }, { status: 200 });
