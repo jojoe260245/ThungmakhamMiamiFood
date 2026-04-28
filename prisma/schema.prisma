@@ -112,22 +112,26 @@ model Order {
   total         Float    @default(0)
   paymentMethod String?  // CASH, PROMPTPAY, CREDIT_CARD
   cancelReason  String?
+  shiftId       Int?
+  cashierId     Int?
   items         OrderItem[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
 
 model OrderItem {
-  id            Int      @id @default(autoincrement())
-  orderId       Int
-  order         Order    @relation(fields: [orderId], references: [id])
-  menuId        Int
-  menu          Menu     @relation(fields: [menuId], references: [id])
-  quantity      Int
-  status        String   @default("PENDING") // PENDING, COOKING, DONE, SERVED
-  note          String?
-  isReservation Boolean  @default(false)
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  order           Order    @relation(fields: [orderId], references: [id])
+  menuId          Int
+  menu            Menu     @relation(fields: [menuId], references: [id])
+  quantity        Int
+  priceAtOrder    Float    @default(0) // Locked price at time of ordering
+  status          String   @default("PENDING") // PENDING, COOKING, DONE, SERVED, CANCELLED
+  note            String?
+  voidReason      String?
+  isReservation   Boolean  @default(false)
   reservationTime DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }

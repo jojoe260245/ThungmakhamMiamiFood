@@ -8,7 +8,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleDigit = (d: string) => { if (pin.length < 6) setPin(pin + d); setError(""); };
+  const handleDigit = (d: string) => { if (pin.length < 4) setPin(pin + d); setError(""); };
   const handleDelete = () => setPin(pin.slice(0, -1));
 
   const handleLogin = async () => {
@@ -49,8 +49,8 @@ export default function LoginPage() {
 
         {/* PIN Display */}
         <div className="flex justify-center gap-3 mb-6">
-          {[0,1,2,3,4,5].map(i => (
-            <div key={i} className={`w-12 h-14 rounded-2xl border flex items-center justify-center text-2xl font-black transition-all duration-300
+          {[0,1,2,3].map(i => (
+            <div key={i} className={`w-14 h-16 rounded-2xl border flex items-center justify-center text-3xl font-black transition-all duration-300
               ${i < pin.length 
                 ? 'bg-amber-500/20 border-amber-500 text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-110' 
                 : 'glass-pill text-transparent'}`}>

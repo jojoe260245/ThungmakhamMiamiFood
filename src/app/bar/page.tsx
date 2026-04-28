@@ -54,6 +54,13 @@ export default function BarDisplaySystem() {
     }
   };
 
+  const handleLogout = () => {
+    if(confirm('ต้องการออกจากระบบหรือไม่?')) {
+      localStorage.removeItem('thungmakhammiamifood_user');
+      window.location.href = '/login';
+    }
+  };
+
   const updateItemStatus = async (itemId: number, currentStatus: string) => {
     let newStatus = 'COOKING';
     if (currentStatus === 'COOKING') newStatus = 'DONE';
@@ -81,7 +88,7 @@ export default function BarDisplaySystem() {
     <AuthGuard allowedRoles={['BAR']}>
       <div className="min-h-screen bg-slate-900 text-slate-100 font-sans flex flex-col">
         {/* Audio element for notification */}
-        <audio id="notification-sound" src="/notification.mp3" preload="auto"></audio>
+        <audio id="notification-sound-bar" src="/notification.mp3" preload="auto"></audio>
 
         {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 p-4 flex justify-between items-center sticky top-0 z-50 shadow-md">
@@ -98,9 +105,10 @@ export default function BarDisplaySystem() {
           </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
-            <p className="text-sm font-bold text-slate-300">Active Drink Orders: {orders.length}</p>
-            <p className="text-xs text-slate-500">Updated: {mounted && lastUpdated.toLocaleTimeString()} {isRefreshing && '(syncing...)'}</p>
+            <p className="text-sm font-bold text-slate-300">Active: {orders.length}</p>
+            <p className="text-xs text-slate-500">{mounted && lastUpdated.toLocaleTimeString()} {isRefreshing && '(syncing...)'}</p>
           </div>
+          <button onClick={handleLogout} className="text-xs bg-slate-700 text-slate-300 border border-slate-600 px-3 py-2 rounded-xl font-bold hover:bg-slate-600">🚪 ออก</button>
         </div>
       </header>
 

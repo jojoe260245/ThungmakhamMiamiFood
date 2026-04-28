@@ -1,33 +1,46 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
-export default function OrderStatus() {
+function OrderStatusContent() {
+  const searchParams = useSearchParams();
+  const tableNo = searchParams.get("table");
+  const token = searchParams.get("token");
   const [orders, setOrders] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const tableNo = "05";
+
+  if (!tableNo) {
+    return (
+      <div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center text-white p-6">
+        <div className="text-center"><div className="text-7xl mb-6">📱</div><h1 className="text-2xl font-black mb-3">กรุณาสแกน QR Code</h1><p className="text-neutral-400 text-sm">สแกน QR ที่โต๊ะเพื่อดูสถานะออเดอร์</p></div>
+      </div>
+    );
+  }
 
   const fetchOrders = async () => {
     try {
       const res = await fetch(`/api/orders/table?tableNo=${tableNo}`);
       const data = await res.json();
       if (data.orders) setOrders(data.orders);
-    } catch (err) { console.error(err); }
-    finally { setIsLoading(false); }
+    } catch {} finally { setIsLoading(false); }
   };
 
-  useEffect(() => { setMounted(true); fetchOrders(); const i = setInterval(fetchOrders, 5000); return () => clearInterval(i); }, []);
+  useEffect(() => { setMounted(true); fetchOrders(); const i = setInterval(fetchOrders, 4000); return () => clearInterval(i); }, []);
 
   const getStatus = (s: string) => {
     switch (s) {
       case 'PENDING': return { label: 'รอรับออเดอร์', color: 'bg-amber-500/20 text-amber-400', icon: '⏳', pct: 25 };
       case 'COOKING': return { label: 'กำลังทำ', color: 'bg-orange-500/20 text-orange-400', icon: '🔥', pct: 60 };
-      case 'DONE': return { label: 'เสร็จแล้ว', color: 'bg-emerald-500/20 text-emerald-400', icon: '✅', pct: 90 };
+      case 'DONE': return { label: 'พร้อมเสิร์ฟ', color: 'bg-emerald-500/20 text-emerald-400', icon: '✅', pct: 90 };
       case 'SERVED': return { label: 'เสิร์ฟแล้ว', color: 'bg-sky-500/20 text-sky-400', icon: '🍽', pct: 100 };
+      case 'CANCELLED': return { label: 'ยกเลิก', color: 'bg-red-500/20 text-red-400', icon: '❌', pct: 0 };
       default: return { label: s, color: 'bg-neutral-800 text-neutral-400', icon: '📋', pct: 0 };
     }
   };
+
+  const menuUrl = token ? `/?table=${tableNo}&token=${token}` : '/';
 
   return (
     <div className="min-h-screen bg-[#0D0D0D] text-white font-sans pb-28">
@@ -35,9 +48,9 @@ export default function OrderStatus() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-xl font-black">สถานะออเดอร์</h1>
-            <p className="text-xs text-neutral-500">Table {tableNo} • ThungmakhamMiami<span className="text-amber-500">Food</span></p>
+            <p className="text-xs text-neutral-500">โต๊ะ {tableNo} • ThungmakhamMiami<span className="text-amber-500">Food</span></p>
           </div>
-          <a href="/" className="text-sm bg-neutral-800 text-amber-400 px-4 py-2 rounded-xl font-bold hover:bg-neutral-700 transition">← เมนู</a>
+          <a href={menuUrl} className="text-sm bg-neutral-800 text-amber-400 px-4 py-2 rounded-xl font-bold hover:bg-neutral-700 transition">← เมนู</a>
         </div>
       </header>
 
@@ -48,7 +61,7 @@ export default function OrderStatus() {
           <div className="text-center py-20 text-neutral-600">
             <p className="text-6xl mb-4">🍽</p>
             <h2 className="text-xl font-bold text-neutral-400 mb-2">ยังไม่มีออเดอร์</h2>
-            <a href="/" className="bg-amber-500 text-black px-6 py-3 rounded-2xl font-black inline-block mt-4 hover:bg-amber-400 transition shadow-lg shadow-amber-500/30">ดูเมนู</a>
+            <a href={menuUrl} className="bg-amber-500 text-black px-6 py-3 rounded-2xl font-black inline-block mt-4 hover:bg-amber-400 transition shadow-lg shadow-amber-500/30">สั่งอาหาร</a>
           </div>
         ) : (
           <div className="space-y-4">
@@ -56,11 +69,17 @@ export default function OrderStatus() {
               <div key={order.id} className="bg-neutral-900 rounded-2xl border border-neutral-800 overflow-hidden">
                 <div className="px-4 py-3 border-b border-neutral-800 flex justify-between items-center">
                   <span className="font-bold text-sm text-neutral-300">Order #{order.id}</span>
-                  <span className="text-[10px] text-neutral-600">{mounted && new Date(order.createdAt).toLocaleTimeString()}</span>
+                  <span className="text-[10px] text-neutral-600">{mounted && new Date(order.createdAt).toLocaleTimeString('th-TH')}</span>
                 </div>
                 <div className="p-4 space-y-3">
                   {order.items.map((item: any) => {
                     const c = getStatus(item.status);
+                    if (item.status === 'CANCELLED') return (
+                      <div key={item.id} className="flex items-center gap-3 opacity-40 line-through">
+                        <span className="text-xl">{c.icon}</span>
+                        <span className="font-bold text-sm">{item.quantity}x {item.menu?.name}</span>
+                      </div>
+                    );
                     return (
                       <div key={item.id} className="flex items-center gap-3">
                         <span className="text-xl">{c.icon}</span>
@@ -80,8 +99,17 @@ export default function OrderStatus() {
                 </div>
               </div>
             ))}
-            <button className="w-full bg-red-950 border border-red-900 text-red-400 font-bold py-4 rounded-2xl hover:bg-red-900 transition text-base">🔔 เรียกพนักงาน</button>
-            <button className="w-full bg-amber-950 border border-amber-900 text-amber-400 font-bold py-4 rounded-2xl hover:bg-amber-900 transition text-base">💳 เรียกเช็คบิล</button>
+
+            {/* Action Buttons */}
+            <div className="space-y-3 pt-2">
+              <button onClick={async () => { await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tableNo, type: 'CALL_STAFF', message: 'เรียกพนักงาน' }) }); alert('🔔 เรียกพนักงานเรียบร้อย! พนักงานกำลังมา'); }} className="w-full bg-red-950 border border-red-900 text-red-400 font-bold py-4 rounded-2xl hover:bg-red-900 transition text-base active:scale-95">🔔 เรียกพนักงาน</button>
+              <button onClick={async () => { await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tableNo, type: 'CHECK_BILL', message: 'ขอเช็คบิล' }) }); alert('💳 ส่งคำขอเช็คบิลแล้ว! พนักงานกำลังเตรียมบิล'); }} className="w-full bg-amber-950 border border-amber-900 text-amber-400 font-bold py-4 rounded-2xl hover:bg-amber-900 transition text-base active:scale-95">💳 ขอเช็คบิล</button>
+              <div className="grid grid-cols-3 gap-2">
+                <button onClick={async () => { await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tableNo, type: 'REQUEST_PLATE', message: 'ขอจาน/ช้อน' }) }); alert('🍽 ขอจาน/ช้อนแล้ว!'); }} className="bg-neutral-900 border border-neutral-800 text-neutral-400 font-bold py-3 rounded-xl text-xs hover:bg-neutral-800 active:scale-95">🍽 จาน/ช้อน</button>
+                <button onClick={async () => { await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tableNo, type: 'REQUEST_ICE', message: 'ขอน้ำแข็ง' }) }); alert('🧊 ขอน้ำแข็งแล้ว!'); }} className="bg-neutral-900 border border-neutral-800 text-neutral-400 font-bold py-3 rounded-xl text-xs hover:bg-neutral-800 active:scale-95">🧊 น้ำแข็ง</button>
+                <button onClick={async () => { await fetch('/api/service-requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tableNo, type: 'REQUEST_TISSUE', message: 'ขอทิชชู่' }) }); alert('🧻 ขอทิชชู่แล้ว!'); }} className="bg-neutral-900 border border-neutral-800 text-neutral-400 font-bold py-3 rounded-xl text-xs hover:bg-neutral-800 active:scale-95">🧻 ทิชชู่</button>
+              </div>
+            </div>
           </div>
         )}
       </main>
@@ -89,16 +117,18 @@ export default function OrderStatus() {
       {/* Bottom Nav */}
       <div className="fixed bottom-0 left-0 w-full bg-[#0D0D0D]/95 backdrop-blur-xl border-t border-neutral-800 pb-safe z-50">
         <div className="flex items-center justify-around max-w-md mx-auto py-3">
-          <a href="/" className="flex flex-col items-center gap-0.5 text-neutral-600 hover:text-neutral-400 transition">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z" /></svg>
-            <span className="text-[10px] font-bold">เมนู</span>
-          </a>
-          <div className="flex flex-col items-center gap-0.5 text-amber-500">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path fillRule="evenodd" d="M2.625 6.75a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0zm4.875 0A.75.75 0 018.25 6h12a.75.75 0 010 1.5h-12a.75.75 0 01-.75-.75z" clipRule="evenodd" /></svg>
-            <span className="text-[10px] font-bold">ออเดอร์</span>
-          </div>
+          <a href={menuUrl} className="flex flex-col items-center gap-0.5 text-neutral-600 hover:text-neutral-400"><span className="text-xl">🏠</span><span className="text-[10px] font-bold">เมนู</span></a>
+          <div className="flex flex-col items-center gap-0.5 text-amber-500"><span className="text-xl">📋</span><span className="text-[10px] font-bold">ออเดอร์</span></div>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderStatus() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0D0D0D] flex items-center justify-center text-white">กำลังโหลด...</div>}>
+      <OrderStatusContent />
+    </Suspense>
   );
 }

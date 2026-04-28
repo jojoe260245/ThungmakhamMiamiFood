@@ -7,15 +7,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status } = body; // PENDING, COOKING, DONE, SERVED
+    const { status, voidReason } = body;
 
     if (!status) {
       return NextResponse.json({ error: 'Status is required' }, { status: 400 });
     }
 
+    const updateData: any = { status };
+    if (status === 'CANCELLED' && voidReason) {
+      updateData.voidReason = voidReason;
+    }
+
     const updatedItem = await prisma.orderItem.update({
       where: { id: parseInt(id) },
-      data: { status }
+      data: updateData
     });
 
     return NextResponse.json({ success: true, item: updatedItem }, { status: 200 });

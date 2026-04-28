@@ -6,51 +6,58 @@ const prisma = new PrismaClient();
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { items, tableNo, total, token } = body;
+    const { items, tableNo, token } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
+    if (!tableNo || !token) {
+      return NextResponse.json({ error: 'กรุณาสแกน QR Code โต๊ะก่อนสั่งอาหาร' }, { status: 403 });
+    }
 
-    // Find the active table ID
-    const table = await prisma.table.findUnique({
-      where: { tableNo: tableNo || '05' }
-    });
-
+    const table = await prisma.table.findUnique({ where: { tableNo: String(tableNo) } });
     if (!table) {
-      return NextResponse.json({ error: 'Table not found' }, { status: 404 });
+      return NextResponse.json({ error: 'ไม่พบโต๊ะ' }, { status: 404 });
+    }
+    // Validate QR token
+    if (!table.token || table.token !== token) {
+      return NextResponse.json({ error: 'QR Code หมดอายุแล้ว กรุณาขอ QR ใหม่จากพนักงาน' }, { status: 403 });
     }
 
-    // Token Validation for PRO system security
-    if (table.token && table.token !== token) {
-      return NextResponse.json({ error: 'QR Code นี้หมดอายุแล้ว กรุณาสแกน QR ใหม่อีกครั้งเพื่อความปลอดภัยครับ' }, { status: 403 });
+    // Fetch real prices from DB (NEVER trust client prices)
+    const menuIds = items.map((i: any) => i.menuId);
+    const menus = await prisma.menu.findMany({ where: { id: { in: menuIds }, status: 'AVAILABLE' } });
+    const menuMap = new Map(menus.map(m => [m.id, m]));
+
+    // Validate all items exist and are available
+    const validatedItems = [];
+    for (const item of items) {
+      const menu = menuMap.get(item.menuId);
+      if (!menu) {
+        return NextResponse.json({ error: `เมนู "${item.name || item.menuId}" หมดแล้วหรือไม่มีในระบบ` }, { status: 400 });
+      }
+      validatedItems.push({
+        menuId: menu.id,
+        quantity: Math.max(1, Math.floor(Number(item.quantity) || 1)),
+        priceAtOrder: menu.price, // Server-side price!
+        note: item.note || null,
+      });
     }
 
-    // Calculate subtotal
-    const subtotal = items.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0);
-    // In Pro POS: Service Charge 10%, VAT 7%
-    // Let's keep it simple for now and use total from client or calculate here.
-    const calculatedTotal = subtotal; // Assuming no VAT/SC for this basic version yet
+    const subtotal = validatedItems.reduce((sum, i) => sum + i.priceAtOrder * i.quantity, 0);
 
-    // Create the order
+    // Set table to occupied
+    await prisma.table.update({ where: { id: table.id }, data: { status: 'OCCUPIED' } });
+
     const order = await prisma.order.create({
       data: {
         tableId: table.id,
         status: 'OPEN',
-        subtotal: subtotal,
-        total: calculatedTotal,
-        items: {
-          create: items.map((item: any) => ({
-            menuId: item.menuId,
-            quantity: item.quantity,
-            price: item.price,
-            note: item.note || null
-          }))
-        }
+        subtotal,
+        total: subtotal,
+        items: { create: validatedItems }
       },
-      include: {
-        items: true
-      }
+      include: { items: { include: { menu: true } } }
     });
 
     return NextResponse.json({ success: true, order }, { status: 201 });

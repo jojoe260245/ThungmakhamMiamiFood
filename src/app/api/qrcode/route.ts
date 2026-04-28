@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import QRCode from 'qrcode';
-import prisma from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
 import { randomBytes } from 'crypto';
+
+const prisma = new PrismaClient();
 
 export async function GET(request: Request) {
   try {

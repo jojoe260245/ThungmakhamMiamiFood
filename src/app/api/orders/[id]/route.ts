@@ -8,57 +8,81 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   try {
     const { id } = await params;
     const body = await request.json();
-    const { paymentMethod, discount } = body; // CASH, PROMPTPAY, CREDIT_CARD
+    const { paymentMethod, discount, checkoutAll } = body;
 
+    if (checkoutAll) {
+      // Checkout ALL open orders for this table
+      const order = await prisma.order.findUnique({ where: { id: parseInt(id) }, include: { table: true } });
+      if (!order || !order.tableId) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+
+      const openOrders = await prisma.order.findMany({
+        where: { tableId: order.tableId, status: 'OPEN' },
+        include: { items: { include: { menu: true } } }
+      });
+
+      let grandSubtotal = 0;
+      for (const o of openOrders) {
+        const sub = o.items
+          .filter(i => i.status !== 'CANCELLED')
+          .reduce((s, i) => s + i.priceAtOrder * i.quantity, 0);
+        grandSubtotal += sub;
+      }
+
+      const finalDiscount = discount || 0;
+      const finalTotal = Math.max(0, grandSubtotal - finalDiscount);
+
+      // Update all orders to PAID
+      for (const o of openOrders) {
+        await prisma.order.update({
+          where: { id: o.id },
+          data: {
+            status: 'PAID',
+            paymentMethod: paymentMethod || 'CASH',
+            discount: finalDiscount / openOrders.length,
+            total: finalTotal / openOrders.length,
+          }
+        });
+      }
+
+      // Clear table
+      await prisma.table.update({
+        where: { id: order.tableId },
+        data: { status: 'AVAILABLE', token: null }
+      });
+
+      return NextResponse.json({ success: true, totalPaid: finalTotal, ordersCount: openOrders.length }, { status: 200 });
+    }
+
+    // Single order checkout
     const order = await prisma.order.findUnique({
       where: { id: parseInt(id) },
       include: { items: true, table: true }
     });
 
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    if (order.status === 'PAID') return NextResponse.json({ error: 'Order already paid' }, { status: 400 });
 
-    if (order.status === 'PAID') {
-      return NextResponse.json({ error: 'Order already paid' }, { status: 400 });
-    }
-
+    const activeItems = order.items.filter(i => i.status !== 'CANCELLED');
+    const subtotal = activeItems.reduce((s, i) => s + i.priceAtOrder * i.quantity, 0);
     const finalDiscount = discount || 0;
-    const finalTotal = order.subtotal - finalDiscount;
+    const finalTotal = Math.max(0, subtotal - finalDiscount);
 
-    // Update order to PAID
     const updatedOrder = await prisma.order.update({
       where: { id: parseInt(id) },
-      data: {
-        status: 'PAID',
-        paymentMethod: paymentMethod || 'CASH',
-        discount: finalDiscount,
-        total: finalTotal,
-      }
+      data: { status: 'PAID', paymentMethod: paymentMethod || 'CASH', discount: finalDiscount, subtotal, total: finalTotal }
     });
 
-    // Check if table has any remaining OPEN orders
+    // Check remaining open orders
     if (order.tableId) {
-      const remainingOrders = await prisma.order.count({
-        where: {
-          tableId: order.tableId,
-          status: 'OPEN',
-          id: { not: parseInt(id) }
-        }
-      });
-
-      // If no more open orders, set table back to AVAILABLE and clear token
-      if (remainingOrders === 0) {
-        await prisma.table.update({
-          where: { id: order.tableId },
-          data: { status: 'AVAILABLE', token: null }
-        });
+      const remaining = await prisma.order.count({ where: { tableId: order.tableId, status: 'OPEN', id: { not: parseInt(id) } } });
+      if (remaining === 0) {
+        await prisma.table.update({ where: { id: order.tableId }, data: { status: 'AVAILABLE', token: null } });
       }
     }
 
     return NextResponse.json({ success: true, order: updatedOrder }, { status: 200 });
   } catch (error) {
-    console.error('Error checking out order:', error);
+    console.error('Error checking out:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -67,24 +91,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-
     const order = await prisma.order.findUnique({
       where: { id: parseInt(id) },
-      include: {
-        table: true,
-        items: {
-          include: { menu: true }
-        }
-      }
+      include: { table: true, items: { include: { menu: true } } }
     });
-
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     return NextResponse.json({ order }, { status: 200 });
   } catch (error) {
-    console.error('Error fetching order:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

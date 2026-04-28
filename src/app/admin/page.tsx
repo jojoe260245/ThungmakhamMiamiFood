@@ -23,6 +23,13 @@ export default function Admin() {
   const [reportPeriod, setReportPeriod] = useState('daily');
   const [modal, setModal] = useState<any>(null); // {type, data?}
 
+  const handleLogout = () => {
+    if(confirm('ต้องการออกจากระบบหรือไม่?')) {
+      localStorage.removeItem('thungmakhammiamifood_user');
+      window.location.href = '/login';
+    }
+  };
+
   useEffect(() => { fetchAll(); }, []);
   useEffect(() => { fetchReports(); }, [reportPeriod]);
   
@@ -60,8 +67,9 @@ export default function Admin() {
           <div><h1 className="text-2xl font-black tracking-tight text-white">Admin Panel</h1><p className="text-xs text-slate-400 font-medium">ThungmakhamMiamiFood</p></div>
         </div>
         <div className="flex gap-3">
-          <a href="/cashier" className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl font-bold hover:bg-emerald-500/20 transition-all active:scale-95 shadow-sm">💰 Cashier</a>
-          <a href="/" className="text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-xl font-bold hover:bg-sky-500/20 transition-all active:scale-95 shadow-sm">🏠 Home</a>
+          <a href="/cashier" className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl font-bold hover:bg-emerald-500/20 transition-all active:scale-95 shadow-sm flex items-center">💰 Cashier</a>
+          <a href="/" className="text-xs bg-sky-500/10 text-sky-400 border border-sky-500/20 px-4 py-2 rounded-xl font-bold hover:bg-sky-500/20 transition-all active:scale-95 shadow-sm flex items-center">🏠 Home</a>
+          <button onClick={handleLogout} className="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-700 transition-all shadow-sm">🚪 ออกจากระบบ</button>
         </div>
       </header>
 

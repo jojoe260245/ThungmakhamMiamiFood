@@ -61,6 +61,13 @@ export default function KitchenDisplaySystem() {
     }
   };
 
+  const handleLogout = () => {
+    if(confirm('ต้องการออกจากระบบหรือไม่?')) {
+      localStorage.removeItem('thungmakhammiamifood_user');
+      window.location.href = '/login';
+    }
+  };
+
   const updateItemStatus = async (itemId: number, currentStatus: string) => {
     // Flow: PENDING -> COOKING -> DONE
     let newStatus = 'COOKING';
@@ -109,9 +116,8 @@ export default function KitchenDisplaySystem() {
             <p className="text-sm font-bold text-slate-300">Active Orders: {orders.length}</p>
             <p className="text-xs text-slate-500">Updated: {mounted && lastUpdated.toLocaleTimeString()} {isRefreshing && '(syncing...)'}</p>
           </div>
+          <button onClick={handleLogout} className="text-xs bg-slate-800 text-slate-300 border border-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-700 transition-all shadow-sm ml-2">🚪 ออกจากระบบ</button>
         </div>
-      </header>
-
       </header>
 
       {/* Alarm Banner */}
